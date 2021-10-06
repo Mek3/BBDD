@@ -1,0 +1,31 @@
+/*
+crear PA (parámetro @cantusu)
+declaración de variables
+generar tabla de nombres y apellidos (TNA)
+mientras @cuenta <= @cuantos {
+seleccionar 1 (nombre,apellidos) aleatoriamente desde TNA: (@nom y @apes)
+seleccionar 1 servidor de correo aleatorio: (@serv)
+construir el usuario de correo electrónico: (@email)
+insertar en USUARIO (email, nombre, apellidos, nacido) =
+(@email,@nom,@apes,fecha_aleatoria)
+*/
+/*declare @prueba int
+set @prueba = (select count(*) orden from #nombre);
+print @prueba*/
+
+select count(*) orden from #nombre, #apellido;
+
+create procedure generar_usuasios @cantusu int 
+as 
+declare @cuenta int, @cantnum int , @numalea int, @nom nvarchar(50), @apes nvarchar(50)
+
+while(@cuenta <= @cantusu)
+begin
+set @cantnum = (select count(*) orden from #nombre, #apellido);
+set @numalea = rand(@cantnum) + 1
+
+
+-- select 
+
+select row_number() over (order by nombre) orden, nombre from #nombre;
+select * from #nombre n, #apellido a1, #apellido a2

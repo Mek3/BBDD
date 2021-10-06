@@ -1,0 +1,70 @@
+/*
+select charindex(' ', 'chocolate koko');
+select len('123456789');
+select * from usuario;
+print N'Nombres y apellidos: ' + @nom + N' ' 
+		+ @apes + N' Serv: ' + @serv + N' Primer apellido: ' +
+			+ ' Email: '+ @email;
+			;
+/*print N'Nombres y apellidos: ' + @nom + N' ' 
+		+ @apes + N' Serv: ' + @serv + N' Primer apellido: ' +
+			+ SUBSTRING(@apes, 1,CHARINDEX(' ', @apes) - 1) +
+			' Email: '+ @email + 
+			' (' + SUBSTRING(@nom, 1,CHARINDEX(' ', @nom) - 1) + ', '+
+				   SUBSTRING(@nom, CHARINDEX(' ', @nom) + 1, len(@nom)-1)
+				   + ')';*/
+/*
+declare @n float;
+declare @cuantos integer = 10;
+declare @contador integer = 1;
+while @cuantos >= @contador
+	begin
+		set @n=rand();
+		select @n, @n*3, floor(@n*3)+1;
+		set @contador=@contador+1;
+	end;*/
+/*print N'cantnum';
+print  @cantnum ;
+print N'cantusu';
+print  @cantusu ;*/
+/*print N'Llamada 2';
+exec generar_usuarios 20;
+print N'Llamada 3';
+exec generar_usuarios 30;*/
+
+/*
+declare @losapellidos varchar(75) = 'Pérez Gómez'
+declare @elnombre varchar(25) = 'María';
+declare @usuario varchar (75);
+select charindex(' ',@losapellidos) posición;
+select substring(@losapellidos,1,charindex(' ',@losapellidos)-1)
+primer_apellido;
+select @elnombre+'.'+substring(@losapellidos,1,charindex(' ',@losapellidos)-1) usuario;
+select @elnombre+'.'+substring(@losapellidos,1,charindex(' ',@losapellidos)-1) + cast(floor(rand()*999) as varchar(3))
+usuario_rand;*/
+		/*	
+		create table usuario (
+		usuId int IDENTITY(1,1) constraint PK_usuario primary key,
+		password varbinary(64),
+		apodo varchar(15),
+		email varchar(254) not null,
+		nombre varchar(50) not null,
+		apellidos varchar(75) not null,
+		nacido date not null,
+		perfil char(3) default '0',
+		constraint FK_usuario_perfil
+		foreign key (perfil) references perfil(perfil)
+		)*/
+/*declare @prueba int
+set @prueba = (select count(*) orden from #nombre);
+print @prueba*/
+/*
+select count(*) orden from #nombre, #apellido;
+-- (select count(*) orden from #nombre, #apellido); -- Cantidad de nombres y apellidos.
+-- select * into #temporal from #nombre n, #apellido a1;
+*/
+-- select 
+
+-- select * from #nombre n, #apellido a1, #apellido a2
+
+*/
