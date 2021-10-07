@@ -357,6 +357,46 @@ while (@cont < @cantidad)
 go
 
 exec gen_sigue;
-exec generar_usuarios 100;
+exec generar_usuarios 10;
 exec gen_sigue;
 select * from sigue;
+
+
+----------------------- Generar comentarios ------------------------
+
+drop procedure if exists gen_comenta;
+go 
+
+create procedure gen_comenta @cantusu int, @maxPorUso int
+as
+declare @i int, @usuar int, @cuantos int, @cont int;
+declare cursor_usuId cursor for select top(@cantusu) usuId from usuario;
+
+open cursor_usuId 
+
+fetch next from cursor_usuId into @usuar;
+while @@FETCH_STATUS = 0
+	begin 
+		set @cuantos = floor(rand()*@maxPorUso)+1
+		set @cont = 1;
+		while @cuantos >= @cont
+		begin
+			if((select count(*) from comentario where usuId = @usuar and numcom = @cont) = 0)
+				insert into comentario(usuId, numcom, comenta, cuando) values 
+							(@usuar, @cont, 'Esto es un comentario', 
+							dbo.getRandomDate('2017-01-01', '2019-10-10'))
+							set @cont = @cont + 1;
+		end
+		fetch next from cursor_usuId into @usuar;
+	end
+close cursor_usuId;
+DEALLOCATE  cursor_usuId;
+
+go 
+
+exec generar_usuarios 20;
+exec gen_comenta 20, 5;
+select * from comentario;
+
+ select top(10) usuId from usuario;
+-- select*from usuario;
