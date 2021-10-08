@@ -281,7 +281,7 @@ while(@contador <= @cantusu)
 
 GO
 
-exec generar_usuarios 5;
+-- exec generar_usuarios 5;
 -- select * from usuario;
 go
 ------------------------------------------ P101 plus ---------------------------------------------------------
@@ -357,7 +357,7 @@ while (@cont < @cantidad)
 go
 
 exec gen_sigue;
-exec generar_usuarios 10;
+-- exec generar_usuarios 10;
 exec gen_sigue;
 select * from sigue;
 
@@ -370,8 +370,7 @@ go
 create procedure gen_comenta @cantusu int, @maxPorUso int
 as
 declare @i int, @usuar int, @cuantos int, @cont int;
-declare cursor_usuId cursor for select top(@cantusu) usuId from usuario;
-
+declare cursor_usuId cursor for select top(@cantusu) usuId from usuario order by newid();
 open cursor_usuId 
 
 fetch next from cursor_usuId into @usuar;
@@ -383,9 +382,10 @@ while @@FETCH_STATUS = 0
 		begin
 			if((select count(*) from comentario where usuId = @usuar and numcom = @cont) = 0)
 				insert into comentario(usuId, numcom, comenta, cuando) values 
-							(@usuar, @cont, 'Esto es un comentario', 
+							(@usuar, cast(@cont as smallint), 'Esto es un comentario', 
 							dbo.getRandomDate('2017-01-01', '2019-10-10'))
-							set @cont = @cont + 1;
+							
+				set @cont = @cont + 1;
 		end
 		fetch next from cursor_usuId into @usuar;
 	end
@@ -394,9 +394,98 @@ DEALLOCATE  cursor_usuId;
 
 go 
 
-exec generar_usuarios 20;
-exec gen_comenta 20, 5;
+exec generar_usuarios 10;
+exec gen_comenta 10, 10;
 select * from comentario;
 
- select top(10) usuId from usuario;
+ -- select top(10) usuId from usuario;
 -- select*from usuario;
+
+----------------------- Modificar comentarios ------------------------
+drop procedure if exists modificarComentarios;
+go 
+
+IF OBJECT_ID('t1') IS NOT NULL
+	DROP TABLE t1;
+
+drop table if EXISTS t1;
+
+IF OBJECT_ID('t2') IS NOT NULL
+	DROP TABLE t2;
+
+drop table if EXISTS t2;
+go
+
+create procedure modificarComentarios 
+as
+declare @c int;
+select @c=count(*)*0.3 from comentario;
+
+select usuId,numcom,row_number() over (order by usuId) rn into t1
+from (select top(@c) usuId,numcom from comentario order by newid()) t;
+
+select usuId,numcom,row_number() over (order by usuId) rn into t2
+from (select top(@c) usuId,numcom from comentario order by newid()) t;
+
+UPDATE comentario set respondea=t2.usuId, respondeanum=t2.numcom
+from comentario c
+--comentario que es respuesta
+join t1 on (c.usuId=t1.usuId and c.numcom=t1.numcom)
+--comentario al que responde
+join t2 on (t1.rn=t2.rn)
+where t1.usuId<>t2.usuId or t1.numcom<>t2.numcom;--que no sean el mismo
+
+go
+exec modificarComentarios; 
+
+select*from comentario;
+
+go
+
+----------------------- Crear valoraciones ------------------------
+
+drop procedure if exists crearValoraciones
+go
+
+create procedure crearValoraciones @nusu int, @ncom int
+as
+declare @usuId int, @numcom int, @valoracion int,  @elusuario int, @valora_a_suario int 
+
+IF OBJECT_ID('t1') IS NOT NULL
+	DROP TABLE t1;
+
+drop table if EXISTS t1;
+
+IF OBJECT_ID('t2') IS NOT NULL
+	DROP TABLE t2;
+
+drop table if EXISTS t2;
+
+print 'entrando...'
+
+select top(cast((@ncom*0.25) as int )) usuId, c.numcom into t1 from comentario c order by newid();
+select top(cast((@nusu*0.05) as int )) usuId into t2 from usuario order by newid();
+
+declare cursor_valoraciones cursor for select top(cast((select count(*)*0.5 from t1, t2) as int )) t2.usuId elusuario, t1.usuId valora_a_suario,  t1.numcom from t1, t2 order by newid();
+open cursor_valoraciones
+fetch next from cursor_valoraciones into @elusuario, @valora_a_suario, @numcom;
+while @@FETCH_STATUS = 0
+	begin 
+		set @valoracion = floor(rand()*5)+1;
+		insert into valora(usuId, valorado, valora.numcom, estrellas) values 
+							(@elusuario, @valora_a_suario, cast(@numcom as smallint), @valoracion)
+							
+		fetch next from cursor_valoraciones into @elusuario, @valora_a_suario, @numcom;
+	end
+close cursor_valoraciones;
+DEALLOCATE  cursor_valoraciones;
+
+go
+
+exec crearValoraciones 100, 50;
+
+select * from valora;
+
+
+exec generar_usuarios 100;
+exec gen_comenta 50, 50;
