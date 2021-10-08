@@ -223,19 +223,9 @@ AS
 go
 ---------------------------------------------------------------------------------------------------
 
------------------------------------------- P101 ---------------------------------------------------------
-
-IF OBJECT_ID('#natemporal') IS NOT NULL
-	DROP TABLE #natemporal;
-
-drop table if EXISTS #natemporal;
-
-go
-
-select row_number() over (order by nombre)
-		orden, nombre, a1.apellido + ' ' + a2.apellido apellidos 
-		into #natemporal
-		from #nombre, #apellido a1, #apellido a2;
+/*************************************************************************************************************/
+/*************************************     P101  ************************************************************
+*************************************************************************************************************/
 
 drop procedure if exists generar_usuarios;
 go
@@ -247,6 +237,16 @@ declare @contador int, @cantnum int , @numalea int,
 		@serv varchar(50), @email varchar(254),
 		@usuario varchar (75), @nomuser varchar (75),
 		@pos int;
+
+IF OBJECT_ID('#natemporal') IS NOT NULL
+	DROP TABLE #natemporal;
+
+drop table if EXISTS #natemporal;
+
+select row_number() over (order by nombre)
+		orden, nombre, a1.apellido + ' ' + a2.apellido apellidos 
+		into #natemporal
+		from #nombre, #apellido a1, #apellido a2;
 
 set @cantnum =  (select count(*) from #natemporal);
 set @contador = 1
@@ -283,11 +283,21 @@ GO
 
 -- exec generar_usuarios 5;
 -- select * from usuario;
-go
------------------------------------------- P101 plus ---------------------------------------------------------
 
+/*************************************************************************************************************/
+/*************************************     P101 plus  ********************************************************
+*************************************************************************************************************/
+
+-----------------------------------------------------------------
 ----------------------- Modificar perfil ------------------------
+-----------------------------------------------------------------
 
+drop procedure if exists  modificarPerfiles;
+go 
+
+create procedure modificarPerfiles
+as
+declare @cantus int;
 IF OBJECT_ID('#temporalperfil') IS NOT NULL
 	DROP TABLE #temporalperfil;
 
@@ -295,13 +305,6 @@ drop table if EXISTS #temporalperfil;
 
 select top(cast((select count(*) from usuario)*.20 as int))
 		usuid, perfil into #temporalperfil from usuario order by newid()
-
-drop procedure if exists modifificarPerfiles;
-go 
-
-create procedure modificarPerfiles
-as
-declare @cantus int;
 
 set @cantus = (select count(*) from usuario);
 
@@ -316,18 +319,12 @@ as
 		u.usuid, u.perfil from usuario u, #temporalperfil tp  where u.usuId != tp.usuId order by newid()) 
 update cons_temp_res set perfil=2;
 
-
 go
 
--- Pruebas
-exec modificarPerfiles;
+-----------------------------------------------------------------
+----------------------- Generar seguidores ----------------------
+-----------------------------------------------------------------
 
-select * from usuario where perfil = 2;
-select * from usuario where perfil = 1 
-
-go
-
------------------------ Generar seguidores ------------------------
 drop procedure if exists gen_sigue;
 go 
 
@@ -356,13 +353,9 @@ while (@cont < @cantidad)
 	end
 go
 
-exec gen_sigue;
--- exec generar_usuarios 10;
-exec gen_sigue;
-select * from sigue;
-
-
------------------------ Generar comentarios ------------------------
+-----------------------------------------------------------------
+----------------------- Generar comentarios ---------------------
+-----------------------------------------------------------------
 
 drop procedure if exists gen_comenta;
 go 
@@ -394,16 +387,16 @@ DEALLOCATE  cursor_usuId;
 
 go 
 
-exec generar_usuarios 10;
-exec gen_comenta 10, 10;
-select * from comentario;
+-----------------------------------------------------------------
+----------------------- Modificar comentarios -------------------
+-----------------------------------------------------------------
 
- -- select top(10) usuId from usuario;
--- select*from usuario;
-
------------------------ Modificar comentarios ------------------------
 drop procedure if exists modificarComentarios;
 go 
+
+create procedure modificarComentarios 
+as
+declare @c int;
 
 IF OBJECT_ID('t1') IS NOT NULL
 	DROP TABLE t1;
@@ -414,11 +407,7 @@ IF OBJECT_ID('t2') IS NOT NULL
 	DROP TABLE t2;
 
 drop table if EXISTS t2;
-go
 
-create procedure modificarComentarios 
-as
-declare @c int;
 select @c=count(*)*0.3 from comentario;
 
 select usuId,numcom,row_number() over (order by usuId) rn into t1
@@ -436,13 +425,10 @@ join t2 on (t1.rn=t2.rn)
 where t1.usuId<>t2.usuId or t1.numcom<>t2.numcom;--que no sean el mismo
 
 go
-exec modificarComentarios; 
 
-select*from comentario;
-
-go
-
------------------------ Crear valoraciones ------------------------
+-----------------------------------------------------------------
+----------------------- Crear valoraciones ----------------------
+-----------------------------------------------------------------
 
 drop procedure if exists crearValoraciones
 go
@@ -461,7 +447,6 @@ IF OBJECT_ID('t2') IS NOT NULL
 
 drop table if EXISTS t2;
 
-print 'entrando...'
 
 select top(cast((@ncom*0.25) as int )) usuId, c.numcom into t1 from comentario c order by newid();
 select top(cast((@nusu*0.05) as int )) usuId into t2 from usuario order by newid();
@@ -482,10 +467,109 @@ DEALLOCATE  cursor_valoraciones;
 
 go
 
-exec crearValoraciones 100, 50;
+-----------------------------------------------------------------
+----------------------- Asignar palabras clave ------------------
+-----------------------------------------------------------------
 
-select * from valora;
+drop procedure if exists asignarPalabraClave
+go 
+
+create procedure asignarPalabraClave @maxpals int
+as 
+declare @usuid int, @numcom int, @cont int, @palclave varchar(20);
+declare comentario_max cursor for select usuid, numcom from comentario;
+open comentario_max
+
+fetch next from comentario_max  into @usuid, @numcom;
+while @@FETCH_STATUS = 0
+	begin 
+		set @cont = floor(rand()*@maxpals)+1;
+		while @cont > 0
+		begin
+			set @palclave = (select top(1) keyw from PALABRASCLAVE ORDER BY newid());
+			if((select count(*) from COMKEYW where keyw = @palclave) = 0)
+				insert into COMKEYW (keyw, usuId, numcom) values 
+								(@palclave, @usuid, @numcom);
+			
+			set @cont = @cont - 1;
+
+		end					
+		fetch next from comentario_max into @usuid, @numcom;
+	end
+close comentario_max;
+DEALLOCATE  comentario_max;
+go
+
+-----------------------------------------------------------------
+----------------------- Crear conexiones ------------------------
+-----------------------------------------------------------------
+
+drop procedure if exists crearConxiones;
+go
+
+create procedure crearConexiones
+as 
+
+declare @usuid int, @numcom int, @cont int, @hoy datetime;
+declare usuarios cursor for select usuid from usuario;
+open usuarios
+
+fetch next from usuarios  into @usuid;
+while @@FETCH_STATUS = 0
+	begin 
+		set @cont = floor(rand()*3)+1;
+		while @cont > 0
+		begin
+			set @hoy = dbo.getRandomDate('20150101','20190930');
+			insert into conexion(usuId, entra) values (@usuid, @hoy);
+			
+			set @cont = @cont - 1;
+
+		end					
+		fetch next from usuarios  into @usuid;
+	end
+close  usuarios;
+DEALLOCATE   usuarios;
 
 
-exec generar_usuarios 100;
-exec gen_comenta 50, 50;
+-----------------------------------------------------------------
+----------------- Combinar todo en un único PA ------------------
+-----------------------------------------------------------------
+
+drop procedure if exists generar_bd
+go
+create procedure generar_bd @cant int
+as 
+exec generar_usuarios @cant;
+exec gen_sigue;
+exec gen_comenta @cant, @cant;
+exec modificarComentarios; 
+exec crearValoraciones @cant, @cant;
+exec asignarPalabraClave 4;
+exec crearConexiones;
+
+go
+
+exec generar_bd 100
+
+select
+(select count(*) from usuario) usuarios,
+(select count(*) from sigue) sigue,
+(select count(*) from comentario) comentarios,
+(select count(*) from comentario where respondea is not null) respuestas,
+(select count(*) from valora) valoraciones,
+(select count(*) from comkeyw) palabras_clave,
+(select count(*) from conexion) conexiones;
+go
+
+
+
+
+
+
+select * from conexion;
+select * from usuario;
+select * from sigue;
+select*from comentario;
+select*from valora;
+select * from COMKEYW;
